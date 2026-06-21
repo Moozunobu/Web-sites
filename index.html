@@ -2,8 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Browser with Developer Console</title>
+  <!-- モバイルでの拡大スクロールを抑止し、ビューサイズを固定する設定 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Browser</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -26,9 +27,15 @@
       --console-bg:  #181818;
     }
 
+    /* 画面全体を固定して不意のスクロールを防止 */
     html, body {
       height: 100%;
+      height: 100dvh;
       overflow: hidden;
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
       background: var(--shell-bg);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       color: var(--text-main);
@@ -38,8 +45,10 @@
     #browser {
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      height: 100%;
       width: 100%;
+      position: relative;
+      overflow: hidden;
     }
 
     /* ── Tab bar ── */
@@ -338,8 +347,12 @@
       white-space: nowrap;
     }
 
-    /* ── Command Console Panel ── */
+    /* ── Command Console Panel (レイアウト崩れを防ぐため絶対配置に変更) ── */
     #console-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
       height: 220px;
       background: var(--console-bg);
       border-top: 2px solid #333;
@@ -471,7 +484,7 @@
       <button id="url-bar-go" title="移動" aria-label="移動">&#8250;</button>
     </div>
     <!-- 右上開発ツールボタン -->
-    <button class="nav-btn" id="btn-console" title="開発コンソール/コマンドライン" aria-label="開発コンソール">&#128295;</button>
+    <button class="nav-btn" id="btn-console" title="開発コンソール" aria-label="開発コンソール">&#128295;</button>
   </div>
 
   <!-- Content -->
@@ -482,13 +495,10 @@
   <!-- Command Console Panel -->
   <div id="console-panel">
     <div id="console-header">
-      <span id="console-title">開発コンソール (コマンドを入力、または 'help' で一覧)</span>
+      <span id="console-title">出力結果</span>
       <span id="console-close">&times;</span>
     </div>
-    <div id="console-body">=== 開発ツールへようこそ ===
-お気に入りに登録するコマンド: This web in my book
-ページのコードを覗き見るコマンド: view-source
-</div>
+    <div id="console-body"></div> <!-- 初期案内テキストは削除され、完全な結果出力専用エリアになりました -->
     <div id="console-footer">
       <span id="console-prompt">&gt;</span>
       <input id="console-input" type="text" placeholder="コマンドを入力..." autocomplete="off" spellcheck="false" />
@@ -527,7 +537,6 @@
   let loadTimer = null;
 
   /* ── Bookmark/Shortcut Management ── */
-  // お気に入りの読み込み (ローカルストレージ)
   function getBookmarks() {
     const data = localStorage.getItem('my_browser_bookmarks');
     return data ? JSON.parse(data) : [
@@ -535,7 +544,6 @@
     ];
   }
 
-  // お気に入りの保存
   function saveBookmarks(bms) {
     localStorage.setItem('my_browser_bookmarks', JSON.stringify(bms));
   }
@@ -601,7 +609,7 @@
       const placeholder = document.createElement('div');
       placeholder.style.fontSize = '12px';
       placeholder.style.color = 'var(--text-dim)';
-      placeholder.textContent = 'お気に入りは登録されていません。右上の🔧ボタンから追加できます。';
+      placeholder.textContent = 'お気に入りは登録されていません。';
       sc.appendChild(placeholder);
       return;
     }
@@ -633,8 +641,6 @@
     el.className = 'nt-page';
     el.setAttribute('data-tabid', tabId);
     el.setAttribute('role', 'tabpanel');
-
-    // 🦊 ロゴは削除されました
 
     const heading = document.createElement('div');
     heading.className = 'nt-heading';
@@ -894,7 +900,6 @@
         return;
       }
 
-      // 追加
       bookmarks.push({
         label: activeTab.title,
         url: activeTab.url,
@@ -902,7 +907,6 @@
       });
       saveBookmarks(bookmarks);
 
-      // 開いている全ての「新規タブページ」のお気に入り一覧を再描画
       contentEl.querySelectorAll('.nt-page').forEach(page => {
         const tid = +page.getAttribute('data-tabid');
         renderShortcuts(page, tid);
@@ -924,7 +928,6 @@
       }
 
       try {
-        // 同一オリジンポリシーの確認を伴う読み込み
         if (iframe.contentDocument && iframe.contentDocument.documentElement) {
           const htmlCode = iframe.contentDocument.documentElement.outerHTML;
           writeToConsole(`--- ${activeTab.url} のコード ---`);
@@ -942,15 +945,16 @@
     else if (cmd === 'clear') {
       consoleBody.innerHTML = '';
     } 
-    else if (cmd === 'help') {
+    // ヘルプコマンドを「Help command ? -a」に変更
+    else if (cmd === 'Help command ? -a') {
       writeToConsole(`使用可能なコマンド:
   This web in my book - 現在のページをお気に入りに追加
   view-source         - 現在表示しているページのソースコードを表示 (CORS制限あり)
-  clear               - コンソール画面をきれいにします
-  help                - コマンド一覧を表示`);
+  clear               - コンソール画面をクリア
+  Help command ? -a   - このヘルプメッセージを表示`);
     } 
     else {
-      writeToConsole(`エラー: 未知のコマンド "${cmd}" です。ヘルプを表示するには 'help' と入力してください。`, true);
+      writeToConsole(`エラー: 未知のコマンド "${cmd}" です。コマンド一覧を調べるには 'Help command ? -a' と入力してください。`, true);
     }
 
     consoleInput.value = '';
@@ -1014,7 +1018,6 @@
   });
 
   /* ── Boot ── */
-  // 初期ページとして Wikipedia を表示
   openTab('https://ja.wikipedia.org');
 
 })();
