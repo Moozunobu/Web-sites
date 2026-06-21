@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Google検索付きタブ機能</title>
+  <style>
+    /* 全体のスタイル */
+    body { font-family: sans-serif; margin: 20px; }
+    
+    /* タブのメニュー部分 */
+    .tab-menu { display: flex; border-bottom: 2px solid #ccc; background-color: #f1f1f1; }
+    .tab-btn { background-color: inherit; border: none; padding: 14px 16px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+    .tab-btn:hover { background-color: #ddd; }
+    .tab-btn.active { background-color: #fff; border-bottom: 2px solid #007bff; font-weight: bold; }
+
+    /* タブの中身 */
+    .tab-content { display: none; padding: 20px; border: 1px solid #ccc; border-top: none; min-height: 400px; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <h2>マイ・ブラウザ風Webページ</h2>
+
+  <div class="tab-menu">
+    <button class="tab-btn active" onclick="openTab(event, 'home')">ホーム</button>
+    <button class="tab-btn" onclick="openTab(event, 'search')">Google検索タブ</button>
+  </div>
+
+  <div id="home" class="tab-content active">
+    <h3>ホーム画面</h3>
+    <p>ここは通常のウェブページです。隣のタブでGoogle検索が使えます。</p>
+  </div>
+
+  <div id="search" class="tab-content">
+    <h3>Google カスタム検索</h3>
+    <p>以下の検索窓からGoogleの機能を使って検索できます。</p>
+    
+    <script async src="https://cse.google.com/cse.js?cx=partner-pub-2698861478625135:ee792ff66d"></script>
+    <div class="gcse-search"></div>
+  </div>
+
+  <script>
+    // タブ切り替えのJavaScript
+    function openTab(evt, tabId) {
+      const contents = document.getElementsByClassName("tab-content");
+      for (let i = 0; i < contents.length; i++) {
+        contents[i].classList.remove("active");
+      }
+      const buttons = document.getElementsByClassName("tab-btn");
+      for (let i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove("active");
+      }
+      document.getElementById(tabId).classList.add("active");
+      evt.currentTarget.classList.add("active");
+    }
+  </script>
+
+</body>
+</html>
