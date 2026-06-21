@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Browser</title>
+  <title>Browser with Developer Console</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -23,6 +23,7 @@
       --ntpage-bg:   #1c1b22;
       --shortcut-bg: #2b2a33;
       --search-bg:   #2b2a33;
+      --console-bg:  #181818;
     }
 
     html, body {
@@ -253,8 +254,6 @@
     }
     .nt-page.active { display: flex; }
 
-    .nt-logo { font-size: 52px; }
-
     .nt-heading {
       font-size: 22px;
       font-weight: 400;
@@ -301,6 +300,9 @@
     .shortcuts {
       display: flex;
       gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 600px;
     }
     .shortcut {
       display: flex;
@@ -310,6 +312,7 @@
       cursor: pointer;
       opacity: 0.72;
       transition: opacity 0.15s, transform 0.15s;
+      width: 80px;
     }
     .shortcut:hover { opacity: 1; transform: translateY(-2px); }
     .shortcut-icon {
@@ -328,6 +331,91 @@
     .shortcut-label {
       font-size: 11px;
       color: #888;
+      text-align: center;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Command Console Panel ── */
+    #console-panel {
+      height: 220px;
+      background: var(--console-bg);
+      border-top: 2px solid #333;
+      display: none;
+      flex-direction: column;
+      font-family: 'Courier New', Courier, monospace;
+      color: #00ff66;
+      flex-shrink: 0;
+      z-index: 200;
+    }
+    #console-panel.active {
+      display: flex;
+    }
+    #console-header {
+      background: #222;
+      padding: 6px 12px;
+      font-size: 11px;
+      color: #aaa;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333;
+    }
+    #console-title {
+      font-weight: bold;
+    }
+    #console-close {
+      cursor: pointer;
+      font-size: 14px;
+      color: #888;
+    }
+    #console-close:hover {
+      color: #fff;
+    }
+    #console-body {
+      flex: 1;
+      padding: 10px;
+      overflow-y: auto;
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+    #console-footer {
+      display: flex;
+      border-top: 1px solid #333;
+      background: #1e1e1e;
+    }
+    #console-prompt {
+      padding: 8px 6px 8px 12px;
+      color: #00ff66;
+      font-size: 13px;
+      user-select: none;
+    }
+    #console-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      padding: 8px 4px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+    }
+    #console-run-btn {
+      background: #333;
+      border: none;
+      color: #ccc;
+      padding: 0 16px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      transition: background 0.1s, color 0.1s;
+    }
+    #console-run-btn:hover {
+      background: #444;
+      color: #fff;
     }
 
     /* ── Error page ── */
@@ -382,11 +470,30 @@
       <input id="url-bar" type="text" placeholder="URLまたは検索ワードを入力" aria-label="アドレスバー" autocomplete="off" spellcheck="false" />
       <button id="url-bar-go" title="移動" aria-label="移動">&#8250;</button>
     </div>
+    <!-- 右上開発ツールボタン -->
+    <button class="nav-btn" id="btn-console" title="開発コンソール/コマンドライン" aria-label="開発コンソール">&#128295;</button>
   </div>
 
   <!-- Content -->
   <div id="content-area" role="main">
     <div id="loading-bar" aria-hidden="true"></div>
+  </div>
+
+  <!-- Command Console Panel -->
+  <div id="console-panel">
+    <div id="console-header">
+      <span id="console-title">開発コンソール (コマンドを入力、または 'help' で一覧)</span>
+      <span id="console-close">&times;</span>
+    </div>
+    <div id="console-body">=== 開発ツールへようこそ ===
+お気に入りに登録するコマンド: This web in my book
+ページのコードを覗き見るコマンド: view-source
+</div>
+    <div id="console-footer">
+      <span id="console-prompt">&gt;</span>
+      <input id="console-input" type="text" placeholder="コマンドを入力..." autocomplete="off" spellcheck="false" />
+      <button id="console-run-btn">実行</button>
+    </div>
   </div>
 
 </div>
@@ -396,16 +503,22 @@
   'use strict';
 
   /* ── DOM refs ── */
-  const tabBar     = document.getElementById('tab-bar');
-  const newTabBtn  = document.getElementById('new-tab-btn');
-  const contentEl  = document.getElementById('content-area');
-  const urlBar     = document.getElementById('url-bar');
-  const urlLock    = document.getElementById('url-bar-lock');
-  const urlGo      = document.getElementById('url-bar-go');
-  const btnBack    = document.getElementById('btn-back');
-  const btnFwd     = document.getElementById('btn-fwd');
-  const btnReload  = document.getElementById('btn-reload');
-  const loadingBar = document.getElementById('loading-bar');
+  const tabBar       = document.getElementById('tab-bar');
+  const newTabBtn    = document.getElementById('new-tab-btn');
+  const contentEl    = document.getElementById('content-area');
+  const urlBar       = document.getElementById('url-bar');
+  const urlLock      = document.getElementById('url-bar-lock');
+  const urlGo        = document.getElementById('url-bar-go');
+  const btnBack      = document.getElementById('btn-back');
+  const btnFwd       = document.getElementById('btn-fwd');
+  const btnReload    = document.getElementById('btn-reload');
+  const loadingBar   = document.getElementById('loading-bar');
+  const btnConsole   = document.getElementById('btn-console');
+  const consolePanel = document.getElementById('console-panel');
+  const consoleClose = document.getElementById('console-close');
+  const consoleBody  = document.getElementById('console-body');
+  const consoleInput = document.getElementById('console-input');
+  const consoleRun   = document.getElementById('console-run-btn');
 
   /* ── State ── */
   let tabs      = [];
@@ -413,20 +526,23 @@
   let idCounter = 0;
   let loadTimer = null;
 
-  /* ── Shortcuts on new-tab page ── */
-  const SHORTCUTS = [
-    { label: 'Google',    url: 'https://www.google.com',        icon: '🔍' },
-    { label: 'YouTube',   url: 'https://www.youtube.com',       icon: '▶' },
-    { label: 'Wikipedia', url: 'https://ja.wikipedia.org',      icon: '📖' },
-    { label: 'GitHub',    url: 'https://github.com',            icon: '⚙' },
-    { label: 'X',         url: 'https://x.com',                 icon: '✕' },
-  ];
+  /* ── Bookmark/Shortcut Management ── */
+  // お気に入りの読み込み (ローカルストレージ)
+  function getBookmarks() {
+    const data = localStorage.getItem('my_browser_bookmarks');
+    return data ? JSON.parse(data) : [
+      { label: 'Wikipedia', url: 'https://ja.wikipedia.org', icon: '📖' }
+    ];
+  }
+
+  // お気に入りの保存
+  function saveBookmarks(bms) {
+    localStorage.setItem('my_browser_bookmarks', JSON.stringify(bms));
+  }
 
   /* ── Favicon mapping ── */
   const FAVICON_MAP = {
-    'google.com': '🔍', 'youtube.com': '▶', 'wikipedia.org': '📖',
-    'github.com': '⚙', 'x.com': '✕', 'twitter.com': '🐦',
-    'reddit.com': '📰', 'amazon.co.jp': '📦', 'amazon.com': '📦',
+    'wikipedia.org': '📖', 'reddit.com': '📰', 'amazon.co.jp': '📦', 'amazon.com': '📦',
   };
 
   function getFavicon(url) {
@@ -444,7 +560,6 @@
     raw = raw.trim();
     if (!raw) return null;
     if (/^https?:\/\//i.test(raw)) return raw;
-    // plain search query (contains spaces, or no dot)
     if (/\s/.test(raw) || !/\./.test(raw)) {
       return 'https://www.google.com/search?q=' + encodeURIComponent(raw);
     }
@@ -475,6 +590,43 @@
     loadTimer = setTimeout(() => { loadingBar.style.width = '0%'; }, 400);
   }
 
+  /* ── Render shortcuts dynamically ── */
+  function renderShortcuts(ntPageEl, tabId) {
+    const sc = ntPageEl.querySelector('.shortcuts');
+    if (!sc) return;
+    sc.innerHTML = '';
+
+    const currentBookmarks = getBookmarks();
+    if (currentBookmarks.length === 0) {
+      const placeholder = document.createElement('div');
+      placeholder.style.fontSize = '12px';
+      placeholder.style.color = 'var(--text-dim)';
+      placeholder.textContent = 'お気に入りは登録されていません。右上の🔧ボタンから追加できます。';
+      sc.appendChild(placeholder);
+      return;
+    }
+
+    currentBookmarks.forEach(s => {
+      const btn = document.createElement('div');
+      btn.className = 'shortcut';
+      btn.setAttribute('role', 'button');
+      btn.setAttribute('tabindex', '0');
+      btn.setAttribute('aria-label', s.label + 'を開く');
+      const ico = document.createElement('div');
+      ico.className = 'shortcut-icon';
+      ico.textContent = s.icon;
+      const lbl = document.createElement('div');
+      lbl.className = 'shortcut-label';
+      lbl.textContent = s.label;
+      btn.appendChild(ico);
+      btn.appendChild(lbl);
+      const go = () => navigateTo(tabId, s.url);
+      btn.addEventListener('click', go);
+      btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') go(); });
+      sc.appendChild(btn);
+    });
+  }
+
   /* ── Build new-tab page DOM ── */
   function buildNTPage(tabId) {
     const el = document.createElement('div');
@@ -482,9 +634,7 @@
     el.setAttribute('data-tabid', tabId);
     el.setAttribute('role', 'tabpanel');
 
-    const logo = document.createElement('div');
-    logo.className = 'nt-logo';
-    logo.textContent = '🦊';
+    // 🦊 ロゴは削除されました
 
     const heading = document.createElement('div');
     heading.className = 'nt-heading';
@@ -519,31 +669,13 @@
 
     const sc = document.createElement('div');
     sc.className = 'shortcuts';
-    SHORTCUTS.forEach(s => {
-      const btn = document.createElement('div');
-      btn.className = 'shortcut';
-      btn.setAttribute('role', 'button');
-      btn.setAttribute('tabindex', '0');
-      btn.setAttribute('aria-label', s.label + 'を開く');
-      const ico = document.createElement('div');
-      ico.className = 'shortcut-icon';
-      ico.textContent = s.icon;
-      const lbl = document.createElement('div');
-      lbl.className = 'shortcut-label';
-      lbl.textContent = s.label;
-      btn.appendChild(ico);
-      btn.appendChild(lbl);
-      const go = () => navigateTo(activeId, s.url);
-      btn.addEventListener('click', go);
-      btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') go(); });
-      sc.appendChild(btn);
-    });
 
-    el.appendChild(logo);
     el.appendChild(heading);
     el.appendChild(searchWrap);
     el.appendChild(hint);
     el.appendChild(sc);
+
+    renderShortcuts(el, tabId);
     return el;
   }
 
@@ -695,7 +827,6 @@
       } catch (_) {}
     });
 
-    /* Detect hard errors via error event (limited in cross-origin) */
     iframe.addEventListener('error', () => {
       finishLoading();
       iframe.remove();
@@ -735,6 +866,96 @@
     contentEl.appendChild(iframe);
   }
 
+  /* ── Console / Command Line System ── */
+  function writeToConsole(text, isError = false) {
+    const span = document.createElement('div');
+    span.style.color = isError ? '#ff3333' : '#00ff66';
+    span.textContent = text;
+    consoleBody.appendChild(span);
+    consoleBody.scrollTop = consoleBody.scrollHeight;
+  }
+
+  function executeCommand(input) {
+    const cmd = input.trim();
+    if (!cmd) return;
+
+    writeToConsole(`> ${cmd}`);
+
+    if (cmd === 'This web in my book') {
+      const activeTab = tabs.find(t => t.id === activeId);
+      if (!activeTab || !activeTab.url) {
+        writeToConsole('エラー: 現在有効なWebページが開かれていません。', true);
+        return;
+      }
+
+      const bookmarks = getBookmarks();
+      if (bookmarks.some(b => b.url === activeTab.url)) {
+        writeToConsole(`案内: すでに登録されています: ${activeTab.title}`);
+        return;
+      }
+
+      // 追加
+      bookmarks.push({
+        label: activeTab.title,
+        url: activeTab.url,
+        icon: getFavicon(activeTab.url)
+      });
+      saveBookmarks(bookmarks);
+
+      // 開いている全ての「新規タブページ」のお気に入り一覧を再描画
+      contentEl.querySelectorAll('.nt-page').forEach(page => {
+        const tid = +page.getAttribute('data-tabid');
+        renderShortcuts(page, tid);
+      });
+
+      writeToConsole(`成功: お気に入りに追加しました: "${activeTab.title}"`);
+    } 
+    else if (cmd === 'view-source') {
+      const activeTab = tabs.find(t => t.id === activeId);
+      if (!activeTab || !activeTab.url) {
+        writeToConsole('エラー: 開いているWebページがありません。', true);
+        return;
+      }
+
+      const iframe = contentEl.querySelector(`iframe[data-tabid="${activeId}"]`);
+      if (!iframe) {
+        writeToConsole('エラー: ソースを取得可能なフレームが存在しません。', true);
+        return;
+      }
+
+      try {
+        // 同一オリジンポリシーの確認を伴う読み込み
+        if (iframe.contentDocument && iframe.contentDocument.documentElement) {
+          const htmlCode = iframe.contentDocument.documentElement.outerHTML;
+          writeToConsole(`--- ${activeTab.url} のコード ---`);
+          writeToConsole(htmlCode);
+          writeToConsole(`--- コード表示終了 ---`);
+        } else {
+          throw new Error('CORS restriction');
+        }
+      } catch (e) {
+        writeToConsole(`[セキュリティ制限(CORS)により取得不可]
+現在のWebページ (${activeTab.url}) は外部ドメインであるため、ブラウザのセキュリティ仕様により中身のコードをJavaScriptで直接覗き見ることができません。
+※同一のドメイン上のHTML、またはローカルファイルであれば、このコマンドで正常にソースコードを表示できます。`, true);
+      }
+    } 
+    else if (cmd === 'clear') {
+      consoleBody.innerHTML = '';
+    } 
+    else if (cmd === 'help') {
+      writeToConsole(`使用可能なコマンド:
+  This web in my book - 現在のページをお気に入りに追加
+  view-source         - 現在表示しているページのソースコードを表示 (CORS制限あり)
+  clear               - コンソール画面をきれいにします
+  help                - コマンド一覧を表示`);
+    } 
+    else {
+      writeToConsole(`エラー: 未知のコマンド "${cmd}" です。ヘルプを表示するには 'help' と入力してください。`, true);
+    }
+
+    consoleInput.value = '';
+  }
+
   /* ── Event listeners ── */
   newTabBtn.addEventListener('click', () => openTab(null));
 
@@ -758,6 +979,28 @@
     if (iframe) { startLoading(); iframe.src = iframe.src; iframe.addEventListener('load', finishLoading, { once: true }); }
   });
 
+  // 開発ツール表示切り替え
+  btnConsole.addEventListener('click', () => {
+    consolePanel.classList.toggle('active');
+    if (consolePanel.classList.contains('active')) {
+      consoleInput.focus();
+    }
+  });
+
+  consoleClose.addEventListener('click', () => {
+    consolePanel.classList.remove('active');
+  });
+
+  consoleInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      executeCommand(consoleInput.value);
+    }
+  });
+
+  consoleRun.addEventListener('click', () => {
+    executeCommand(consoleInput.value);
+  });
+
   /* ── Keyboard shortcuts ── */
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 't') { e.preventDefault(); openTab(null); }
@@ -770,8 +1013,9 @@
     }
   });
 
-  /* ── Boot: open Google ── */
-  openTab('https://www.google.com');
+  /* ── Boot ── */
+  // 初期ページとして Wikipedia を表示
+  openTab('https://ja.wikipedia.org');
 
 })();
 </script>
