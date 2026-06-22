@@ -1,0 +1,6 @@
+{
+  "name": "Mock Browser v10",
+  "description": "多機能・マルチタブ搭載のブラウザ再現モックアップ。開発者コンソール、詳細設定、ブックマーク、レイアウト切替機能を備えています。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
