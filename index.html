@@ -1,13 +1,421 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Browser v10 - Fixed History</title>
+  <style>
+    /* ─── 変数定義 ─── */
+    :root {
+      --shell-bg:    #1c1b22; --tabbar-bg:   #1c1b22; --tab-idle:    #2b2a33;
+      --tab-hover:   #3a3944; --tab-active:  #42414d; --toolbar-bg:  #42414d;
+      --border:      rgba(255,255,255,0.08); --text-main:   #f0f0f0;
+      --text-muted:  #aaa; --text-dim:    #666; --accent:      #8c82ff;
+      --urlbar-bg:   #1c1b22; --ntpage-bg:   #1c1b22; --shortcut-bg: #2b2a33;
+      --search-bg:   #2b2a33; --console-bg:  #181818;
+      --font-size-main: 13px; --font-size-small: 12px;
+    }
+    :root.theme-light {
+      --shell-bg:    #e9e9ed; --tabbar-bg:   #e9e9ed; --tab-idle:    #f5f5f7;
+      --tab-hover:   #e0e0e6; --tab-active:  #ffffff; --toolbar-bg:  #ffffff;
+      --border:      rgba(0,0,0,0.1); --text-main:   #222;
+      --text-muted:  #666; --text-dim:    #999; --accent:      #5a4fff;
+      --urlbar-bg:   #e9e9ed; --ntpage-bg:   #f5f5f7; --shortcut-bg: #e9e9ed;
+      --search-bg:   #e9e9ed; --console-bg:  #f0f0f0;
+    }
+    body[data-font-size="small"] { --font-size-main: 12px; --font-size-small: 11px; }
+    body[data-font-size="large"] { --font-size-main: 14px; --font-size-small: 13px; }
 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%; height: 100dvh; overflow: hidden; position: fixed;
+      width: 100%; top: 0; left: 0; background: var(--shell-bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      color: var(--text-main); font-size: var(--font-size-main);
+    }
+
+    #browser { display: flex; flex-direction: column; height: 100%; width: 100%; position: relative; overflow: hidden; }
+    #main-panel { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+
+    /* ─── タブバー ─── */
+    #tab-bar {
+      display: flex; align-items: flex-end; background: var(--tabbar-bg);
+      padding: 8px 8px 0; gap: 2px; min-height: 46px;
+      overflow-x: auto; overflow-y: visible; scrollbar-width: none; flex-shrink: 0;
+    }
+    #tab-bar::-webkit-scrollbar { display: none; }
+    .tab {
+      display: flex; align-items: center; gap: 7px; padding: 7px 10px 9px;
+      min-width: 130px; max-width: 220px; height: 36px;
+      background: var(--tab-idle); border-radius: 8px 8px 0 0;
+      cursor: pointer; font-size: var(--font-size-small); color: var(--text-muted);
+      user-select: none; position: relative; flex-shrink: 0;
+      transition: background 0.12s, color 0.12s; border: 0.5px solid var(--border); border-bottom: none;
+    }
+    .tab:hover { background: var(--tab-hover); color: var(--text-main); }
+    .tab.active { background: var(--tab-active); color: var(--text-main); z-index: 2; }
+    .tab.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px; background: var(--tab-active); }
+    .tab-favicon { font-size: var(--font-size-main); flex-shrink: 0; }
+    .tab-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tab-close { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-dim); cursor: pointer; flex-shrink: 0; }
+    .tab-close:hover { background: rgba(0,0,0,0.1); color: var(--text-main); }
+    #new-tab-btn { width: 30px; height: 28px; background: transparent; border: none; color: var(--text-muted); font-size: 22px; cursor: pointer; align-self: center; margin-bottom: 4px; }
+
+    /* ─── ツールバー ─── */
+    #toolbar { background: var(--toolbar-bg); padding: 6px 10px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+    .nav-btn { width: 30px; height: 30px; background: transparent; border: none; border-radius: 50%; color: var(--text-main); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.1s; flex-shrink: 0; }
+    .nav-btn:hover:not(:disabled) { background: rgba(0,0,0,0.08); }
+    .nav-btn:disabled { color: var(--text-dim); cursor: default; opacity: 0.3; }
+    #url-bar-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+    #url-bar { width: 100%; height: 32px; background: var(--urlbar-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 0 36px 0 36px; color: var(--text-main); font-size: var(--font-size-main); outline: none; }
+    #url-bar-lock { position: absolute; left: 12px; font-size: var(--font-size-main); color: var(--text-dim); }
+
+    /* ─── コンテンツエリア ─── */
+    #content-area { flex: 1; position: relative; overflow: hidden; background: var(--shell-bg); }
+    .page-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; display: none; }
+    .page-frame.active { display: block; }
+    #loading-bar { position: absolute; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 100; width: 0%; transition: width 0.25s ease; pointer-events: none; }
+
+    /* ─── レイアウト：垂直 ─── */
+    body.layout-vertical #browser { flex-direction: row; }
+    body.layout-vertical #tab-bar { flex-direction: column; width: 240px; height: 100%; padding: 8px; border-right: 1px solid var(--border); }
+    body.layout-vertical .tab { max-width: none; min-width: 0; border-radius: 8px; border-bottom: 0.5px solid var(--border); }
+    body.layout-vertical #new-tab-btn { width: 100%; height: 36px; }
+
+    /* ─── 新規タブページ ─── */
+    .nt-page { position: absolute; inset: 0; background: var(--ntpage-bg); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+    .nt-page.active { display: flex; }
+    .nt-heading { font-size: 22px; font-weight: 400; color: var(--text-muted); }
+    .nt-search-wrap { position: relative; width: 360px; }
+    .nt-search { width: 100%; height: 46px; background: var(--search-bg); border: 1.5px solid var(--border); border-radius: 23px; padding: 0 18px 0 42px; color: var(--text-main); outline: none; }
+    .nt-hint { font-size: 11px; color: var(--text-dim); margin-top: -16px; }
+    .shortcuts { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 600px; }
+    .shortcut { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; width: 80px; opacity: 0.8; transition: transform 0.15s; }
+    .shortcut:hover { transform: translateY(-2px); opacity: 1; }
+    .shortcut-icon { width: 56px; height: 56px; background: var(--shortcut-bg); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 0.5px solid var(--border); }
+    .shortcut-label { font-size: 11px; color: var(--text-dim); text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+
+    /* ─── 設定パネル & コンソール ─── */
+    #settings-panel { position: absolute; top: 0; right: 0; width: 300px; height: 100%; background: var(--shell-bg); border-left: 1px solid var(--border); z-index: 300; transform: translateX(100%); transition: transform 0.25s; }
+    #settings-panel.active { transform: translateX(0); }
+    .settings-header { padding: 10px 15px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+    .settings-body { padding: 20px 15px; overflow-y: auto; height: calc(100% - 50px); }
+    .setting-group { margin-bottom: 20px; }
+    .setting-group-title { font-size: 12px; font-weight: bold; color: var(--text-muted); margin-bottom: 10px; }
+
+    #console-panel { position: absolute; bottom: 0; left: 0; right: 0; height: 220px; background: var(--console-bg); border-top: 2px solid #333; display: none; flex-direction: column; z-index: 200; font-family: monospace; }
+    #console-panel.active { display: flex; }
+    #console-body { flex: 1; padding: 10px; overflow-y: auto; font-size: 12px; color: #0f6; }
+    #console-footer { display: flex; background: #1e1e1e; border-top: 1px solid #333; }
+    #console-input { flex: 1; background: transparent; border: none; color: #fff; padding: 8px; outline: none; }
+    
+    .error-page { position: absolute; inset: 0; background: #1c1b22; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; text-align: center; }
+    .error-page.active { display: flex; }
+  </style>
+</head>
+<body>
+
+<div id="browser">
+  <div id="tab-bar" role="tablist">
+    <button id="new-tab-btn" title="新しいタブ">+</button>
+  </div>
+
+  <div id="main-panel">
+    <div id="toolbar">
+      <button class="nav-btn" id="btn-back" title="戻る">&#8592;</button>
+      <button class="nav-btn" id="btn-fwd" title="進む">&#8594;</button>
+      <button class="nav-btn" id="btn-reload" title="再読み込み">&#8635;</button>
+      <div id="url-bar-wrap">
+        <span id="url-bar-lock">🔒</span>
+        <input id="url-bar" type="text" placeholder="URLを入力" />
+      </div>
+      <button class="nav-btn" id="btn-console" title="開発コンソール">&#128295;</button>
+      <button class="nav-btn" id="btn-settings" title="設定">&#9881;</button>
+    </div>
+
+    <div id="content-area">
+      <div id="loading-bar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 設定パネル -->
+<div id="settings-panel">
+  <div class="settings-header">
+    <span class="settings-title" data-i18n="settings.title">設定</span>
+    <span class="settings-close" style="cursor:pointer">&times;</span>
+  </div>
+  <div class="settings-body">
+    <div class="setting-group">
+      <div class="setting-group-title" data-i18n="settings.theme.title">テーマ</div>
+      <label><input type="radio" name="theme" value="dark" checked> ダーク</label><br>
+      <label><input type="radio" name="theme" value="light"> ライト</label>
+    </div>
+    <div class="setting-group">
+      <div class="setting-group-title" data-i18n="settings.layout.title">タブ配置</div>
+      <label><input type="radio" name="tab-layout" value="horizontal" checked> 水平</label><br>
+      <label><input type="radio" name="tab-layout" value="vertical"> 垂直</label>
+    </div>
+    <div class="setting-group">
+      <div class="setting-group-title">検索エンジン</div>
+      <label><input type="radio" name="search-engine" value="google" checked> Google</label><br>
+      <label><input type="radio" name="search-engine" value="bing"> Bing</label>
+    </div>
+  </div>
+</div>
+
+<!-- コンソール -->
+<div id="console-panel">
+  <div class="settings-header" style="background:#222; color:#aaa">
+    <span>Console</span>
+    <span class="settings-close" id="console-close" style="cursor:pointer">&times;</span>
+  </div>
+  <div id="console-body"></div>
+  <div id="console-footer">
+    <input id="console-input" type="text" placeholder="コマンドを入力..." />
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const BROWSER_VERSION = 'v10.1-fixed';
+
+  const DOMElements = {
+    body: document.body,
+    tabBar: document.getElementById('tab-bar'),
+    newTabBtn: document.getElementById('new-tab-btn'),
+    contentEl: document.getElementById('content-area'),
+    urlBar: document.getElementById('url-bar'),
+    urlLock: document.getElementById('url-bar-lock'),
+    btnBack: document.getElementById('btn-back'),
+    btnFwd: document.getElementById('btn-fwd'),
+    btnReload: document.getElementById('btn-reload'),
+    loadingBar: document.getElementById('loading-bar'),
+    btnConsole: document.getElementById('btn-console'),
+    consolePanel: document.getElementById('console-panel'),
+    consoleBody: document.getElementById('console-body'),
+    consoleInput: document.getElementById('console-input'),
+    btnSettings: document.getElementById('btn-settings'),
+    settingsPanel: document.getElementById('settings-panel'),
+  };
+
+  let tabs = [], activeId = null, idCounter = 0;
+  let settings = { theme: 'dark', tabLayout: 'horizontal', language: 'ja', fontSize: 'medium', searchEngine: 'google' };
+
+  // ─── 設定管理 ───
+  function applySettings() {
+    DOMElements.body.classList.toggle('theme-light', settings.theme === 'light');
+    DOMElements.body.classList.toggle('layout-vertical', settings.tabLayout === 'vertical');
+  }
+
+  function loadSettings() {
+    const saved = localStorage.getItem('my_browser_settings');
+    if (saved) settings = { ...settings, ...JSON.parse(saved) };
+    applySettings();
+  }
+
+  // ─── ヘルパー ───
+  function getFavicon(url) {
+    if (url === 'about:newtab') return "🌐";
+    return "🌐";
+  }
+
+  function normalise(raw) {
+    raw = raw.trim();
+    if (!raw) return null;
+    if (raw === 'about:newtab' || /^https?:\/\//i.test(raw)) return raw;
+    if (/\s/.test(raw) || !/\./.test(raw)) {
+      const base = settings.searchEngine === 'bing' ? "https://www.bing.com/search?q=" : "https://www.google.com/search?q=";
+      return base + encodeURIComponent(raw);
+    }
+    return "https://" + raw;
+  }
+
+  // ─── 履歴・ナビゲーション (修正の肝) ───
+  function updateNav(tab) {
+    if (!tab) return;
+    // 履歴のインデックス状況に応じてボタンを有効/無効化
+    DOMElements.btnBack.disabled = (tab.histIdx <= 0);
+    DOMElements.btnFwd.disabled = (tab.histIdx >= tab.history.length - 1);
+  }
+
+  function navigateTo(tabId, url, isHistoryMove = false) {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    // 新しいURLへ移動する場合（戻る・進むボタン以外）、現在の位置より先の履歴を消して新規追加
+    if (!isHistoryMove) {
+      if (tab.history[tab.histIdx] !== url) {
+        tab.history = tab.history.slice(0, tab.histIdx + 1);
+        tab.history.push(url);
+        tab.histIdx = tab.history.length - 1;
+      }
+    }
+
+    tab.url = url;
+    tab.favicon = getFavicon(url);
+    try { tab.title = url === 'about:newtab' ? "新しいタブ" : new URL(url).hostname; } catch(e) { tab.title = url; }
+
+    if (activeId === tabId) {
+      DOMElements.urlBar.value = (url === 'about:newtab') ? "" : url;
+      updateNav(tab);
+    }
+
+    // 画面描画の切り替え
+    DOMElements.contentEl.querySelectorAll(`[data-tabid="${tabId}"]`).forEach(e => e.remove());
+
+    if (url === 'about:newtab') {
+      const ntPage = buildNTPage(tabId);
+      DOMElements.contentEl.appendChild(ntPage);
+    } else {
+      startLoading();
+      const iframe = document.createElement("iframe");
+      iframe.className = "page-frame active";
+      iframe.setAttribute("data-tabid", tabId);
+      iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation");
+      iframe.src = url;
+      iframe.onload = () => {
+        finishLoading();
+        try { if(iframe.contentDocument.title) tab.title = iframe.contentDocument.title; renderTabs(); } catch(e){}
+      };
+      iframe.onerror = () => {
+        finishLoading();
+        const err = buildErrorPage(tabId, url);
+        DOMElements.contentEl.appendChild(err);
+      };
+      DOMElements.contentEl.appendChild(iframe);
+    }
+    renderTabs();
+  }
+
+  function historyGo(delta) {
+    const tab = tabs.find(t => t.id === activeId);
+    if (!tab) return;
+
+    const nextIdx = tab.histIdx + delta;
+    if (nextIdx >= 0 && nextIdx < tab.history.length) {
+      tab.histIdx = nextIdx;
+      const targetUrl = tab.history[tab.histIdx];
+      // 履歴移動としてnavigateToを呼ぶ（第3引数をtrueに）
+      navigateTo(activeId, targetUrl, true);
+      writeToConsole(`案内: 履歴移動 (${tab.histIdx + 1}/${tab.history.length})`);
+    }
+  }
+
+  // ─── タブ管理 ───
+  function openTab(url) {
+    const id = ++idCounter;
+    const tab = { id, title: "新しいタブ", favicon: "🌐", url: 'about:newtab', history: ['about:newtab'], histIdx: 0 };
+    tabs.push(tab);
+    activateTab(id);
+    if (url) navigateTo(id, normalise(url));
+  }
+
+  function activateTab(id) {
+    activeId = id;
+    const tab = tabs.find(t => t.id === id);
+    DOMElements.contentEl.querySelectorAll(`[data-tabid]`).forEach(p => p.classList.toggle('active', p.getAttribute('data-tabid') == id));
+    if (tab) {
+        DOMElements.urlBar.value = (tab.url === 'about:newtab') ? "" : tab.url;
+        updateNav(tab);
+    }
+    renderTabs();
+  }
+
+  function closeTab(id) {
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx === -1) return;
+    tabs.splice(idx, 1);
+    DOMElements.contentEl.querySelectorAll(`[data-tabid="${id}"]`).forEach(e => e.remove());
+    if (tabs.length === 0) openTab(null);
+    else activateTab(tabs[Math.min(idx, tabs.length - 1)].id);
+  }
+
+  function renderTabs() {
+    DOMElements.tabBar.querySelectorAll(".tab").forEach(e => e.remove());
+    tabs.forEach(tab => {
+      const el = document.createElement("div");
+      el.className = "tab" + (tab.id === activeId ? ' active' : '');
+      el.innerHTML = `<span class="tab-favicon">${tab.favicon}</span><span class="tab-title">${tab.title}</span><span class="tab-close">&times;</span>`;
+      el.onclick = () => activateTab(tab.id);
+      el.querySelector(".tab-close").onclick = (e) => { e.stopPropagation(); closeTab(tab.id); };
+      DOMElements.tabBar.insertBefore(el, DOMElements.newTabBtn);
+    });
+  }
+
+  // ─── UI 構築 ───
+  function buildNTPage(tabId) {
+    const el = document.createElement("div");
+    el.className = "nt-page active"; el.setAttribute("data-tabid", tabId);
+    el.innerHTML = `<div class="nt-heading">新しいタブ</div>
+      <div class="nt-search-wrap"><input type="text" class="nt-search" placeholder="検索またはURLを入力"></div>
+      <div class="nt-hint">Enter キーで移動</div><div class="shortcuts"></div>`;
+    el.querySelector(".nt-search").onkeydown = (e) => { if(e.key==='Enter') navigateTo(tabId, normalise(e.target.value)); };
+    return el;
+  }
+
+  function buildErrorPage(tabId, url) {
+    const el = document.createElement("div");
+    el.className = "error-page active"; el.setAttribute("data-tabid", tabId);
+    el.innerHTML = `<div style="font-size:40px">⚠️</div><div>読み込めませんでした</div><div style="font-size:12px; color:#888">${url}</div>`;
+    return el;
+  }
+
+  let loadRAF;
+  function startLoading() {
+    let p = 0;
+    DOMElements.loadingBar.style.width = "0%";
+    const step = () => { p += (95 - p) * 0.05; DOMElements.loadingBar.style.width = p + "%"; if(p < 90) loadRAF = requestAnimationFrame(step); };
+    loadRAF = requestAnimationFrame(step);
+  }
+  function finishLoading() { cancelAnimationFrame(loadRAF); DOMElements.loadingBar.style.width = "100%"; setTimeout(() => DOMElements.loadingBar.style.width = "0%", 300); }
+
+  function writeToConsole(txt) {
+    const d = document.createElement("div"); d.textContent = "> " + txt;
+    DOMElements.consoleBody.appendChild(d); DOMElements.consoleBody.scrollTop = DOMElements.consoleBody.scrollHeight;
+  }
+
+  // ─── イベント ───
+  DOMElements.newTabBtn.onclick = () => openTab(null);
+  DOMElements.btnBack.onclick = () => historyGo(-1);
+  DOMElements.btnFwd.onclick = () => historyGo(1);
+  DOMElements.btnReload.onclick = () => {
+    const tab = tabs.find(t => t.id === activeId);
+    if(tab && tab.url !== 'about:newtab') navigateTo(activeId, tab.url, true);
+  };
+  DOMElements.urlBar.onkeydown = (e) => { if(e.key==='Enter') navigateTo(activeId, normalise(DOMElements.urlBar.value)); };
+  
+  DOMElements.btnSettings.onclick = () => DOMElements.settingsPanel.classList.toggle('active');
+  document.querySelectorAll(".settings-close").forEach(btn => btn.onclick = () => {
+    DOMElements.settingsPanel.classList.remove('active');
+    DOMElements.consolePanel.classList.remove('active');
+  });
+
+  DOMElements.btnConsole.onclick = () => DOMElements.consolePanel.classList.toggle('active');
+  DOMElements.consoleInput.onkeydown = (e) => {
+    if(e.key === 'Enter') {
+        const cmd = e.target.value;
+        writeToConsole(cmd);
+        if(cmd === 'clear') DOMElements.consoleBody.innerHTML = '';
+        if(cmd === 'version') writeToConsole(BROWSER_VERSION);
+        e.target.value = '';
+    }
+  };
+
+  DOMElements.settingsPanel.onchange = (e) => {
+    const { name, value } = e.target;
+    if(name === 'theme') settings.theme = value;
+    if(name === 'tab-layout') settings.tabLayout = value;
+    if(name === 'search-engine') settings.searchEngine = value;
+    localStorage.setItem('my_browser_settings', JSON.stringify(settings));
+    applySettings();
+  };
+
+  // ─── 初期化 ───
+  loadSettings();
+  openTab('https://ja.wikipedia.org');
+})();
+</script>
+</body>
+</html>
