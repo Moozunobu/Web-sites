@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Browser v1</title>
+  <title>Browser v10</title>
   <style>
     /* ─── 変数定義 ─── */
     :root {
@@ -68,7 +68,7 @@
     .tab-favicon { font-size: var(--font-size-main); flex-shrink: 0; }
     .tab-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* ─── 垂直タブバー (切り替え用) ─── */
+    /* ─── 垂直タブバー ─── */
     body.layout-vertical #browser { flex-direction: row; }
     body.layout-vertical #tab-bar {
       flex-direction: column; width: 240px; height: 100%;
@@ -77,7 +77,7 @@
     body.layout-vertical .tab {
       max-width: none; min-width: 0; border-radius: 8px; border-bottom: 0.5px solid var(--border);
     }
-    body.layout-vertical .tab.active::after { display: none; } /* 不要なので消す */
+    body.layout-vertical .tab.active::after { display: none; }
 
     .tab-close {
       width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center;
@@ -105,7 +105,7 @@
       align-items: center; justify-content: center; transition: background 0.1s; flex-shrink: 0;
     }
     .nav-btn:hover:not(:disabled) { background: rgba(0,0,0,0.08); }
-    .nav-btn:disabled { color: var(--text-dim); cursor: default; }
+    .nav-btn:disabled { color: var(--text-dim); cursor: default; opacity: 0.3; }
     #url-bar-wrap { flex: 1; position: relative; display: flex; align-items: center; }
     #url-bar {
       width: 100%; height: 32px; background: var(--urlbar-bg);
@@ -197,7 +197,6 @@
       font-family: 'Courier New', Courier, monospace; color: #00ff66; flex-shrink: 0; z-index: 200;
     }
     #console-panel.active { display: flex; }
-    /* (以下、既存のコマンドラインCSSは省略) */
     .theme-light #console-panel { border-top-color: #ccc; }
     .theme-light #console-header { background: #ddd; border-bottom-color: #ccc; color: #555; }
     .theme-light #console-close { color: #777; }
@@ -210,7 +209,7 @@
     .theme-light #console-run-btn:hover { background: #bbb; color: #000; }
     #console-header{background:#222;padding:6px 12px;font-size:11px;color:#aaa;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #333}#console-title{font-weight:700}#console-close{cursor:pointer;font-size:14px;color:#888}#console-close:hover{color:#fff}#console-body{flex:1;padding:10px;overflow-y:auto;font-size:12px;line-height:1.4;white-space:pre-wrap}#console-footer{display:flex;border-top:1px solid #333;background:#1e1e1e}#console-prompt{padding:8px 6px 8px 12px;color:#00ff66;font-size:13px;user-select:none}#console-input{flex:1;background:transparent;border:none;color:#fff;padding:8px 4px;font-family:inherit;font-size:13px;outline:0}#console-run-btn{background:#333;border:none;color:#ccc;padding:0 16px;cursor:pointer;font-family:inherit;font-size:12px;transition:background .1s,color .1s}#console-run-btn:hover{background:#444;color:#fff}
 
-    /* (エラーページCSSは省略) */
+    /* ─── エラーページ ─── */
     .error-page{position:absolute;inset:0;background:#1c1b22;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--text-muted);text-align:center;padding:40px}.error-page.active{display:flex}.error-page .err-icon{font-size:48px;opacity:.4}.error-page .err-title{font-size:20px;color:#ddd}.error-page .err-desc{font-size:13px;line-height:1.6;max-width:400px;color:#888}.error-page .err-retry{margin-top:8px;padding:8px 20px;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:20px;color:#ccc;font-size:13px;cursor:pointer;transition:background .12s;font-family:inherit}.error-page .err-retry:hover{background:rgba(255,255,255,.08)}
   </style>
 </head>
@@ -224,12 +223,12 @@
 
   <div id="main-panel">
     <div id="toolbar">
-      <button class="nav-btn" id="btn-back" disabled>&#8592;</button>
-      <button class="nav-btn" id="btn-fwd" disabled>&#8594;</button>
-      <button class="nav-btn" id="btn-reload">&#8635;</button>
+      <button class="nav-btn" id="btn-back" title="戻る">&#8592;</button>
+      <button class="nav-btn" id="btn-fwd" title="進む">&#8594;</button>
+      <button class="nav-btn" id="btn-reload" title="再読み込み">&#8635;</button>
       <div id="url-bar-wrap">
         <span id="url-bar-lock">🔒</span>
-        <input id="url-bar" type="text" autocomplete="off" spellcheck="false" />
+        <input id="url-bar" type="text" autocomplete="off" spellcheck="false" placeholder="URLを入力" />
       </div>
       <button class="nav-btn" id="btn-console" title="開発コンソール">&#128295;</button>
       <button class="nav-btn" id="btn-settings" title="設定">&#9881;</button>
@@ -272,6 +271,13 @@
       </div>
     </div>
     <div class="setting-group">
+      <div class="setting-group-title" data-i18n="settings.searchengine.title">検索エンジン</div>
+      <div class="setting-option">
+        <label><input type="radio" name="search-engine" value="google" checked> <span>Google</span></label>
+        <label><input type="radio" name="search-engine" value="bing"> <span>Bing</span></label>
+      </div>
+    </div>
+    <div class="setting-group">
       <div class="setting-group-title" data-i18n="settings.fontsize.title">文字の大きさ</div>
       <div class="setting-option">
         <label><input type="radio" name="font-size" value="small"> <span data-i18n="settings.fontsize.small">小</span></label>
@@ -291,7 +297,7 @@
   <div id="console-body"></div>
   <div id="console-footer">
     <span id="console-prompt">&gt;</span>
-    <input id="console-input" type="text" autocomplete="off" spellcheck="false" />
+    <input id="console-input" type="text" autocomplete="off" spellcheck="false" placeholder="コマンドを入力..." />
     <button id="console-run-btn">実行</button>
   </div>
 </div>
@@ -300,9 +306,9 @@
 (function () {
   'use strict';
   
-  const BROWSER_VERSION = 'v1';
+  const BROWSER_VERSION = 'v10';
 
-  /* (既存のDOM参照) */
+  /* ─── DOM要素参照 ─── */
   const DOMElements = {
     body: document.body,
     tabBar: document.getElementById('tab-bar'),
@@ -323,31 +329,36 @@
     settingsPanel: document.getElementById('settings-panel'),
   };
 
-  /* (既存のState) */
+  /* ─── 状態変数 ─── */
   let tabs = [], activeId = null, idCounter = 0;
 
   // ─── 設定管理 ────────────────────────────────────────────────────────
-  const I18N = { // 国際化対応テキスト
-    ja: { 'settings.title': '設定', 'settings.theme.title': 'テーマ', 'settings.theme.dark': 'ダーク', 'settings.theme.light': 'ライト', 'settings.layout.title': 'タブバーの配置', 'settings.layout.horizontal': '水平 (上)', 'settings.layout.vertical': '垂直 (左)', 'settings.language.title': '言語', 'settings.fontsize.title': '文字の大きさ', 'settings.fontsize.small': '小', 'settings.fontsize.medium': '中', 'settings.fontsize.large': '大' },
-    en: { 'settings.title': 'Settings', 'settings.theme.title': 'Theme', 'settings.theme.dark': 'Dark', 'settings.theme.light': 'Light', 'settings.layout.title': 'Tab Bar Layout', 'settings.layout.horizontal': 'Horizontal (Top)', 'settings.layout.vertical': 'Vertical (Left)', 'settings.language.title': 'Language', 'settings.fontsize.title': 'Font Size', 'settings.fontsize.small': 'Small', 'settings.fontsize.medium': 'Medium', 'settings.fontsize.large': 'Large' }
+  const I18N = {
+    ja: { 'settings.title': '設定', 'settings.theme.title': 'テーマ', 'settings.theme.dark': 'ダーク', 'settings.theme.light': 'ライト', 'settings.layout.title': 'タブバーの配置', 'settings.layout.horizontal': '水平 (上)', 'settings.layout.vertical': '垂直 (左)', 'settings.language.title': '言語', 'settings.searchengine.title': '検索エンジン', 'settings.fontsize.title': '文字の大きさ', 'settings.fontsize.small': '小', 'settings.fontsize.medium': '中', 'settings.fontsize.large': '大' },
+    en: { 'settings.title': 'Settings', 'settings.theme.title': 'Theme', 'settings.theme.dark': 'Dark', 'settings.theme.light': 'Light', 'settings.layout.title': 'Tab Bar Layout', 'settings.layout.horizontal': 'Horizontal (Top)', 'settings.layout.vertical': 'Vertical (Left)', 'settings.language.title': 'Language', 'settings.searchengine.title': 'Search Engine', 'settings.fontsize.title': 'Font Size', 'settings.fontsize.small': 'Small', 'settings.fontsize.medium': 'Medium', 'settings.fontsize.large': 'Large' }
   };
 
   let settings = {
-    theme: 'dark', tabLayout: 'horizontal', language: 'ja', fontSize: 'medium'
+    theme: 'dark', tabLayout: 'horizontal', language: 'ja', fontSize: 'medium', searchEngine: 'google'
   };
 
   function applySettings() {
-    // テーマ
     DOMElements.body.classList.toggle('theme-light', settings.theme === 'light');
-    // タブレイアウト
     DOMElements.body.classList.toggle('layout-vertical', settings.tabLayout === 'vertical');
-    // 言語
     document.querySelectorAll('[data-i18n]').forEach(el => {
       const key = el.dataset.i18n;
       el.textContent = I18N[settings.language][key] || key;
     });
-    // フォントサイズ
     DOMElements.body.dataset.fontSize = settings.fontSize;
+    updateSearchPlaceholders();
+  }
+
+  // 検索窓のプレースホルダーを現在選択中のエンジンに同期する処理
+  function updateSearchPlaceholders() {
+    const engineName = settings.searchEngine === 'bing' ? 'Bing' : 'Google';
+    document.querySelectorAll('.nt-search').forEach(input => {
+      input.placeholder = `${engineName} で検索、またはURLを入力`;
+    });
   }
 
   function saveSettings() {
@@ -359,57 +370,504 @@
     if (saved) {
       settings = { ...settings, ...JSON.parse(saved) };
     }
-    // UIに設定を反映
     document.querySelector(`input[name="theme"][value="${settings.theme}"]`).checked = true;
     document.querySelector(`input[name="tab-layout"][value="${settings.tabLayout}"]`).checked = true;
     document.getElementById('language-select').value = settings.language;
+    document.querySelector(`input[name="search-engine"][value="${settings.searchEngine}"]`).checked = true;
     document.querySelector(`input[name="font-size"][value="${settings.fontSize}"]`).checked = true;
     
     applySettings();
   }
   
   // ─── コマンドライン ───────────────────────────────────────────────────────
-  function writeToConsole(text, isError = false) { /* (変更なし) */
-    const span=document.createElement("div");span.style.color=isError?"#ff3333":"#00ff66",span.textContent=text,DOMElements.consoleBody.appendChild(span),DOMElements.consoleBody.scrollTop=DOMElements.consoleBody.scrollHeight
+  function writeToConsole(text, isError = false) {
+    const span = document.createElement("div");
+    span.style.color = isError ? "#ff3333" : "#00ff66";
+    span.textContent = text;
+    DOMElements.consoleBody.appendChild(span);
+    DOMElements.consoleBody.scrollTop = DOMElements.consoleBody.scrollHeight;
   }
 
   function executeCommand(input) {
-    const cmd = input.trim().toLowerCase(); // ★小文字に変換
+    const cmd = input.trim().toLowerCase();
     if (!cmd) return;
-    writeToConsole(`> ${input}`); // 表示は元の入力のまま
+    writeToConsole(`> ${input}`);
 
     if (cmd === 'this web in my book') {
-        /* (ブックマーク機能 - 変更なし) */
-        const activeTab=tabs.find(t=>t.id===activeId);if(!activeTab||!activeTab.url)return void writeToConsole("エラー: 現在有効なWebページが開かれていません。",!0);const bookmarks=getBookmarks();if(bookmarks.some(b=>b.url===activeTab.url))return void writeToConsole(`案内: すでに登録されています: ${activeTab.title}`);bookmarks.push({label:activeTab.title,url:activeTab.url,icon:getFavicon(activeTab.url)}),saveBookmarks(bookmarks),DOMElements.contentEl.querySelectorAll(".nt-page").forEach(page=>{const tid=+page.getAttribute("data-tabid");renderShortcuts(page,tid)}),writeToConsole(`成功: お気に入りに追加しました: "${activeTab.title}"`)
+        const activeTab = tabs.find(t => t.id === activeId);
+        if (!activeTab || !activeTab.url || activeTab.url === 'about:newtab') return void writeToConsole("エラー: 有効なWebページが開かれていません。", true);
+        const bookmarks = getBookmarks();
+        if (bookmarks.some(b => b.url === activeTab.url)) return void writeToConsole(`案内: すでに登録されています: ${activeTab.title}`);
+        bookmarks.push({ label: activeTab.title, url: activeTab.url, icon: getFavicon(activeTab.url) });
+        saveBookmarks(bookmarks);
+        DOMElements.contentEl.querySelectorAll(".nt-page").forEach(page => {
+          const tid = +page.getAttribute("data-tabid");
+          renderShortcuts(page, tid);
+        });
+        writeToConsole(`成功: お気に入りに追加しました: "${activeTab.title}"`);
     } else if (cmd === 'view-source') {
-        /* (ソース表示機能 - 変更なし) */
-        const activeTab=tabs.find(t=>t.id===activeId);if(!activeTab||!activeTab.url)return void writeToConsole("エラー: 開いているWebページがありません。",!0);const iframe=DOMElements.contentEl.querySelector(`iframe[data-tabid="${activeId}"]`);if(!iframe)return void writeToConsole("エラー: ソースを取得可能なフレームが存在しません。",!0);try{if(iframe.contentDocument&&iframe.contentDocument.documentElement){const htmlCode=iframe.contentDocument.documentElement.outerHTML;writeToConsole(`--- ${activeTab.url} のコード ---`),writeToConsole(htmlCode),writeToConsole("--- コード表示終了 ---")}else throw new Error("CORS restriction")}catch(e){writeToConsole(`[セキュリティ制限(CORS)により取得不可]\n現在のWebページ (${activeTab.url}) は外部ドメインであるため、ブラウザのセキュリティ仕様により中身のコードをJavaScriptで直接覗き見ることができません。`,!0)}
+        const activeTab = tabs.find(t => t.id === activeId);
+        if (!activeTab || !activeTab.url || activeTab.url === 'about:newtab') return void writeToConsole("エラー: 開いているWebページがありません。", true);
+        const iframe = DOMElements.contentEl.querySelector(`iframe[data-tabid="${activeId}"]`);
+        if (!iframe) return void writeToConsole("エラー: ソースを取得可能なフレームが存在しません。", true);
+        try {
+          if (iframe.contentDocument && iframe.contentDocument.documentElement) {
+            const htmlCode = iframe.contentDocument.documentElement.outerHTML;
+            writeToConsole(`--- ${activeTab.url} のコード ---`);
+            writeToConsole(htmlCode);
+            writeToConsole("--- コード表示終了 ---");
+          } else throw new Error("CORS restriction");
+        } catch (e) {
+          writeToConsole(`[セキュリティ制限(CORS)により取得不可]\n現在のWebページ (${activeTab.url}) は外部ドメインであるため、ブラウザのセキュリティ仕様により中身のコードをJavaScriptで直接覗き見ることができません。`, true);
+        }
     } else if (cmd === 'this browser-version') {
         writeToConsole(`Browser Version: ${BROWSER_VERSION}`);
     } else if (cmd === 'clear') {
         DOMElements.consoleBody.innerHTML = '';
     } else if (cmd === 'help command ? -a') {
-        writeToConsole(`使用可能なコマンド:\n  This web in my book - 現在のページをお気に入りに追加\n  view-source         - 現在ページのソースコードを表示 (CORS制限あり)\n  this browser-version - バージョン情報を表示\n  clear               - コンソール画面をクリア\n  Help command ? -a   - このヘルプメッセージを表示`);
+        writeToConsole(`使用可能なコマンド:\n  This web in my book   - 現在のページをお気に入りに追加\n  view-source           - 現在ページのソースコードを表示 (CORS制限あり)\n  this browser-version  - バージョン情報を表示\n  clear                 - コンソール画面をクリア\n  Help command ? -a     - このヘルプメッセージを表示`);
     } else {
       writeToConsole(`エラー: 未知のコマンド "${cmd}" です。コマンド一覧を調べるには 'Help command ? -a' と入力してください。`, true);
     }
     DOMElements.consoleInput.value = '';
   }
 
-  /* (以下、既存のブラウザコア機能。大きな変更はありません) */
-  function getBookmarks(){const data=localStorage.getItem("my_browser_bookmarks");return data?JSON.parse(data):[{label:"Wikipedia",url:"https://ja.wikipedia.org",icon:"📖"}]}function saveBookmarks(bms){localStorage.setItem("my_browser_bookmarks",JSON.stringify(bms))}const FAVICON_MAP={ "wikipedia.org":"📖","reddit.com":"📰","amazon.co.jp":"📦","amazon.com":"📦"};function getFavicon(url){try{const host=(new URL(url)).hostname.replace(/^www\./,"");for(const[k,v]of Object.entries(FAVICON_MAP))if(host.includes(k))return v}catch(_){}return"🌐"}function normalise(raw){return raw=raw.trim(),raw?/^https?:\/\//i.test(raw)?raw:/\s/.test(raw)||!/\./.test(raw)?"https://www.google.com/search?q="+encodeURIComponent(raw):"https://"+raw:null}let loadRAF=null;function startLoading(){let progress=0;function step(){progress+=(100-progress)*.06,DOMElements.loadingBar.style.width=Math.min(progress,90)+"%",progress<89&&(loadRAF=requestAnimationFrame(step))}DOMElements.loadingBar.style.transition="none",DOMElements.loadingBar.style.width="0%",void DOMElements.loadingBar.offsetWidth,DOMElements.loadingBar.style.transition="width 0.25s ease",loadRAF=requestAnimationFrame(step)}function finishLoading(){cancelAnimationFrame(loadRAF),DOMElements.loadingBar.style.width="100%",setTimeout(()=>{DOMElements.loadingBar.style.width="0%"},400)}function renderShortcuts(ntPageEl,tabId){const sc=ntPageEl.querySelector(".shortcuts");if(!sc)return;sc.innerHTML="";const currentBookmarks=getBookmarks();if(0===currentBookmarks.length){const placeholder=document.createElement("div");return placeholder.style.fontSize="12px",placeholder.style.color="var(--text-dim)",placeholder.textContent="お気に入りは登録されていません。",void sc.appendChild(placeholder)}currentBookmarks.forEach(s=>{const btn=document.createElement("div");btn.className="shortcut",btn.setAttribute("role","button"),btn.setAttribute("tabindex","0"),btn.setAttribute("aria-label",s.label+"を開く");const ico=document.createElement("div");ico.className="shortcut-icon",ico.textContent=s.icon;const lbl=document.createElement("div");lbl.className="shortcut-label",lbl.textContent=s.label,btn.appendChild(ico),btn.appendChild(lbl);const go=()=>navigateTo(tabId,s.url);btn.addEventListener("click",go),btn.addEventListener("keydown",e=>{"Enter"!==e.key&&" "!==e.key||go()}),sc.appendChild(btn)})}function buildNTPage(tabId){const el=document.createElement("div");el.className="nt-page",el.setAttribute("data-tabid",tabId),el.setAttribute("role","tabpanel");const heading=document.createElement("div");heading.className="nt-heading",heading.textContent="新しいタブ";const searchWrap=document.createElement("div");searchWrap.className="nt-search-wrap";const searchIcon=document.createElement("span");searchIcon.className="nt-search-icon",searchIcon.textContent="🔍",searchIcon.setAttribute("aria-hidden","true");const searchInput=document.createElement("input");searchInput.type="text",searchInput.className="nt-search",searchInput.placeholder="Google で検索、またはURLを入力",searchInput.setAttribute("aria-label","検索またはURLを入力"),searchInput.addEventListener("keydown",e=>{"Enter"===e.key&&navigateTo(activeId,normalise(searchInput.value))});const hint=document.createElement("div");hint.className="nt-hint",hint.textContent="Enter キーで移動";const sc=document.createElement("div");return sc.className="shortcuts",searchWrap.appendChild(searchIcon),searchWrap.appendChild(searchInput),el.appendChild(heading),el.appendChild(searchWrap),el.appendChild(hint),el.appendChild(sc),renderShortcuts(el,tabId),el}function buildErrorPage(tabId,url){const el=document.createElement("div");return el.className="error-page",el.setAttribute("data-tabid",tabId),el.innerHTML=`\n      <div class="err-icon">🔌</div>\n      <div class="err-title">ページを表示できませんでした</div>\n      <div class="err-desc">\n        <strong>${url}</strong> に接続できませんでした。<br>\n        URLを確認するか、別のサイトをお試しください。<br>\n        ※ セキュリティ制限により、一部のサイトはiframe内では表示できません。\n      </div>\n      <button class="err-retry">再試行</button>\n    `,el.querySelector(".err-retry").addEventListener("click",()=>navigateTo(tabId,url)),el}function renderTabs(){DOMElements.tabBar.querySelectorAll(".tab").forEach(e=>e.remove()),tabs.forEach(tab=>{const el=document.createElement("div");el.className="tab"+(tab.id===activeId?" active":""),el.setAttribute("role","tab"),el.setAttribute("aria-selected",tab.id===activeId?"true":"false"),el.setAttribute("data-id",tab.id),el.title=tab.title;const fav=document.createElement("span");fav.className="tab-favicon",fav.setAttribute("aria-hidden","true"),fav.textContent=tab.favicon;const title=document.createElement("span");title.className="tab-title",title.textContent=tab.title;const close=document.createElement("span");close.className="tab-close",close.setAttribute("role","button"),close.setAttribute("aria-label","タブを閉じる"),close.innerHTML="&times;",close.addEventListener("click",e=>{e.stopPropagation(),closeTab(tab.id)}),el.appendChild(fav),el.appendChild(title),el.appendChild(close),el.addEventListener("click",()=>activateTab(tab.id)),DOMElements.tabBar.insertBefore(el,DOMElements.newTabBtn)})}function showPage(tabId){DOMElements.contentEl.querySelectorAll("[data-tabid]").forEach(p=>{p.classList.toggle("active",+p.getAttribute("data-tabid")===tabId)})}function updateUrlBar(tab){tab?(DOMElements.urlBar.value=tab.url||"",DOMElements.urlLock.textContent=tab.url&&tab.url.startsWith("https://")?"🔒":"🌐"):(DOMElements.urlBar.value="",DOMElements.urlLock.textContent="🌐")}function updateNav(tab){tab?(DOMElements.btnBack.disabled=tab.histIdx<=0,DOMElements.btnFwd.disabled=tab.histIdx>=tab.history.length-1):(DOMElements.btnBack.disabled=!0,DOMElements.btnFwd.disabled=!0)}function activateTab(id){activeId=id,showPage(id);const tab=tabs.find(t=>t.id===id);updateUrlBar(tab),updateNav(tab),renderTabs()}function openTab(url){const id=++idCounter,tab={id:id,title:"新しいタブ",favicon:"🌐",url:null,history:[],histIdx:-1};tabs.push(tab);const ntPage=buildNTPage(id);DOMElements.contentEl.appendChild(ntPage),activateTab(id),url&&setTimeout(()=>navigateTo(id,url),0)}function closeTab(id){const idx=tabs.findIndex(t=>t.id===id);-1!==idx&&(tabs.splice(idx,1),DOMElements.contentEl.querySelectorAll(`[data-tabid="${id}"]`).forEach(e=>e.remove()),0===tabs.length?openTab(null):activeId===id?activateTab(tabs[Math.min(idx,tabs.length-1)].id):renderTabs())}function navigateTo(tabId,url){const tab=tabs.find(t=>t.id===tabId);if(!tab)return;tab.url=url,tab.history=tab.history.slice(0,tab.histIdx+1),tab.history.push(url),tab.histIdx=tab.history.length-1,tab.favicon=getFavicon(url);try{tab.title=(new URL(url)).hostname.replace(/^www\./,"")||url}catch(_){tab.title=url}activeId===tabId&&(updateUrlBar(tab),updateNav(tab)),DOMElements.contentEl.querySelectorAll(`[data-tabid="${tabId}"]`).forEach(e=>e.remove()),startLoading();const iframe=document.createElement("iframe");iframe.className="page-frame"+(activeId===tabId?" active":""),iframe.setAttribute("data-tabid",tabId),iframe.setAttribute("title",tab.title),iframe.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"),iframe.src=url,iframe.addEventListener("load",()=>{finishLoading();try{const t=iframe.contentDocument&&iframe.contentDocument.title;t&&(tab.title=t,renderTabs())}catch(_){}}),iframe.addEventListener("error",()=>{finishLoading(),iframe.remove();const err=buildErrorPage(tabId,url);activeId===tabId&&err.classList.add("active"),DOMElements.contentEl.appendChild(err)}),DOMElements.contentEl.appendChild(iframe),renderTabs()}function historyGo(delta){const tab=tabs.find(t=>t.id===activeId);if(!tab)return;const next=tab.histIdx+delta;if(!(next<0||next>=tab.history.length)){tab.histIdx=next;const url=tab.history[next];tab.url=url,tab.favicon=getFavicon(url);try{tab.title=(new URL(url)).hostname.replace(/^www\./,"")}catch(_){}updateUrlBar(tab),updateNav(tab),renderTabs(),DOMElements.contentEl.querySelectorAll(`[data-tabid="${activeId}"]`).forEach(e=>e.remove()),startLoading();const iframe=document.createElement("iframe");iframe.className="page-frame active",iframe.setAttribute("data-tabid",activeId),iframe.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation"),iframe.src=url,iframe.addEventListener("load",()=>finishLoading()),DOMElements.contentEl.appendChild(iframe)}}
+  // ─── お気に入り ──────────────────────────────────────────────────────────
+  function getBookmarks() {
+    const data = localStorage.getItem("my_browser_bookmarks");
+    return data ? JSON.parse(data) : [{ label: "Wikipedia", url: "https://ja.wikipedia.org", icon: "📖" }];
+  }
+  function saveBookmarks(bms) {
+    localStorage.setItem("my_browser_bookmarks", JSON.stringify(bms));
+  }
+  const FAVICON_MAP = { "wikipedia.org": "📖", "reddit.com": "📰", "amazon.co.jp": "📦", "amazon.com": "📦" };
+  function getFavicon(url) {
+    if (url === 'about:newtab') return "🌐";
+    try {
+      const host = (new URL(url)).hostname.replace(/^www\./, "");
+      for (const [k, v] of Object.entries(FAVICON_MAP)) if (host.includes(k)) return v;
+    } catch (_) {}
+    return "🌐";
+  }
+
+  // ─── 履歴管理 & 画面描画 ───────────────────────────────────────────────────
+  function normalise(raw) {
+    raw = raw.trim();
+    if (!raw) return null;
+    if (raw === 'about:newtab') return raw;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (/\s/.test(raw) || !/\./.test(raw)) {
+      // 検索エンジンの設定（Google / Bing）に応じて検索先を分岐
+      if (settings.searchEngine === 'bing') {
+        return "https://www.bing.com/search?q=" + encodeURIComponent(raw);
+      }
+      return "https://www.google.com/search?q=" + encodeURIComponent(raw);
+    }
+    return "https://" + raw;
+  }
+
+  let loadRAF = null;
+  function startLoading() {
+    let progress = 0;
+    function step() {
+      progress += (100 - progress) * 0.06;
+      DOMElements.loadingBar.style.width = Math.min(progress, 90) + "%";
+      if (progress < 89) loadRAF = requestAnimationFrame(step);
+    }
+    DOMElements.loadingBar.style.transition = "none";
+    DOMElements.loadingBar.style.width = "0%";
+    void DOMElements.loadingBar.offsetWidth;
+    DOMElements.loadingBar.style.transition = "width 0.25s ease";
+    loadRAF = requestAnimationFrame(step);
+  }
+
+  function finishLoading() {
+    cancelAnimationFrame(loadRAF);
+    DOMElements.loadingBar.style.width = "100%";
+    setTimeout(() => { DOMElements.loadingBar.style.width = "0%"; }, 400);
+  }
+
+  function renderShortcuts(ntPageEl, tabId) {
+    const sc = ntPageEl.querySelector(".shortcuts");
+    if (!sc) return;
+    sc.innerHTML = "";
+    const currentBookmarks = getBookmarks();
+    if (currentBookmarks.length === 0) {
+      const placeholder = document.createElement("div");
+      placeholder.style.fontSize = "12px";
+      placeholder.style.color = "var(--text-dim)";
+      placeholder.textContent = "お気に入りは登録されていません。";
+      sc.appendChild(placeholder);
+      return;
+    }
+    currentBookmarks.forEach(s => {
+      const btn = document.createElement("div");
+      btn.className = "shortcut";
+      btn.setAttribute("role", "button");
+      btn.setAttribute("tabindex", "0");
+      btn.setAttribute("aria-label", s.label + "を開く");
+      const ico = document.createElement("div");
+      ico.className = "shortcut-icon";
+      ico.textContent = s.icon;
+      const lbl = document.createElement("div");
+      lbl.textContent = s.label;
+      lbl.className = "shortcut-label";
+      btn.appendChild(ico);
+      btn.appendChild(lbl);
+      const go = () => navigateTo(tabId, s.url);
+      btn.addEventListener("click", go);
+      btn.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") go(); });
+      sc.appendChild(btn);
+    });
+  }
+
+  function buildNTPage(tabId) {
+    const el = document.createElement("div");
+    el.className = "nt-page active"; 
+    el.setAttribute("data-tabid", tabId);
+    el.setAttribute("role", "tabpanel");
+    const heading = document.createElement("div");
+    heading.className = "nt-heading";
+    heading.textContent = "新しいタブ";
+    const searchWrap = document.createElement("div");
+    searchWrap.className = "nt-search-wrap";
+    const searchIcon = document.createElement("span");
+    searchIcon.className = "nt-search-icon";
+    searchIcon.textContent = "🔍";
+    searchIcon.setAttribute("aria-hidden", "true");
+    const searchInput = document.createElement("input");
+    searchInput.type = "text";
+    searchInput.className = "nt-search";
+    searchInput.placeholder = "Google で検索、またはURLを入力";
+    searchInput.setAttribute("aria-label", "検索またはURLを入力");
+    searchInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") navigateTo(activeId, normalise(searchInput.value));
+    });
+    const hint = document.createElement("div");
+    hint.className = "nt-hint";
+    hint.textContent = "Enter キーで移動";
+    const sc = document.createElement("div");
+    sc.className = "shortcuts";
+    searchWrap.appendChild(searchIcon);
+    searchWrap.appendChild(searchInput);
+    el.appendChild(heading);
+    el.appendChild(searchWrap);
+    el.appendChild(hint);
+    el.appendChild(sc);
+    renderShortcuts(el, tabId);
+    return el;
+  }
+
+  function buildErrorPage(tabId, url) {
+    const el = document.createElement("div");
+    el.className = "error-page";
+    el.setAttribute("data-tabid", tabId);
+    el.innerHTML = `
+      <div class="err-icon">🔌</div>
+      <div class="err-title">ページを表示できませんでした</div>
+      <div class="err-desc">
+        <strong>${url}</strong> に接続できませんでした。<br>
+        URLを確認するか、別のサイトをお試しください。<br>
+        ※ セキュリティ制限により、一部のサイトはiframe内では表示できません。
+      </div>
+      <button class="err-retry">再試行</button>
+    `;
+    el.querySelector(".err-retry").addEventListener("click", () => navigateTo(tabId, url));
+    return el;
+  }
+
+  function renderTabs() {
+    DOMElements.tabBar.querySelectorAll(".tab").forEach(e => e.remove());
+    tabs.forEach(tab => {
+      const el = document.createElement("div");
+      el.className = "tab" + (tab.id === activeId ? ' active' : '');
+      el.setAttribute("role", "tab");
+      el.setAttribute("aria-selected", tab.id === activeId ? "true" : "false");
+      el.setAttribute("data-id", tab.id);
+      el.title = tab.title;
+      const fav = document.createElement("span");
+      fav.className = "tab-favicon";
+      fav.setAttribute("aria-hidden", "true");
+      fav.textContent = tab.favicon;
+      const title = document.createElement("span");
+      title.className = "tab-title";
+      title.textContent = tab.title;
+      const close = document.createElement("span");
+      close.className = "tab-close";
+      close.setAttribute("role", "button");
+      close.setAttribute("aria-label", "タブを閉じる");
+      close.innerHTML = "&times;";
+      close.addEventListener("click", e => {
+        e.stopPropagation();
+        closeTab(tab.id);
+      });
+      el.appendChild(fav);
+      el.appendChild(title);
+      el.appendChild(close);
+      el.addEventListener("click", () => activateTab(tab.id));
+      DOMElements.tabBar.insertBefore(el, DOMElements.newTabBtn);
+    });
+  }
+
+  function showPage(tabId) {
+    DOMElements.contentEl.querySelectorAll(`[data-tabid="${tabId}"]`).forEach(p => {
+      p.classList.add('active');
+    });
+    DOMElements.contentEl.querySelectorAll(`[data-tabid]:not([data-tabid="${tabId}"])`).forEach(p => {
+      p.classList.remove('active');
+    });
+  }
+
+  function updateUrlBar(tab) {
+    if (tab) {
+      DOMElements.urlBar.value = (tab.url === 'about:newtab') ? "" : (tab.url || "");
+      DOMElements.urlLock.textContent = tab.url && tab.url.startsWith("https://") ? "🔒" : "🌐";
+    } else {
+      DOMElements.urlBar.value = "";
+      DOMElements.urlLock.textContent = "🌐";
+    }
+  }
+
+  function updateNav(tab) {
+    DOMElements.btnBack.disabled = false;
+    DOMElements.btnFwd.disabled = false;
+  }
+
+  function activateTab(id) {
+    activeId = id;
+    showPage(id);
+    const tab = tabs.find(t => t.id === id);
+    updateUrlBar(tab);
+    updateNav(tab);
+    renderTabs();
+  }
+
+  // 全タブが 'about:newtab' を必ず履歴の「原点（インデックス0）」として抱える設計
+  function openTab(url) {
+    const id = ++idCounter;
+    const tab = { 
+      id: id, 
+      title: "新しいタブ", 
+      favicon: "🌐", 
+      url: 'about:newtab', 
+      history: ['about:newtab'], 
+      histIdx: 0 
+    };
+    tabs.push(tab);
+
+    const ntPage = buildNTPage(id);
+    DOMElements.contentEl.appendChild(ntPage);
+    activateTab(id);
+
+    if (url) {
+      setTimeout(() => navigateTo(id, url), 0);
+    }
+  }
+
+  function closeTab(id) {
+    const idx = tabs.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      tabs.splice(idx, 1);
+      DOMElements.contentEl.querySelectorAll(`[data-tabid="${id}"]`).forEach(e => e.remove());
+      if (tabs.length === 0) {
+        openTab(null);
+      } else if (activeId === id) {
+        activateTab(tabs[Math.min(idx, tabs.length - 1)].id);
+      } else {
+        renderTabs();
+      }
+    }
+  }
+
+  // 同一タブ内では<iframe>要素の使い回し（再利用）を行う設計
+  function navigateTo(tabId, url) {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+
+    if (tab.history[tab.histIdx] !== url) {
+      tab.history = tab.history.slice(0, tab.histIdx + 1);
+      tab.history.push(url);
+      tab.histIdx = tab.history.length - 1;
+    }
+    
+    tab.url = url;
+    tab.favicon = getFavicon(url);
+
+    if (url === 'about:newtab') {
+      tab.title = "新しいタブ";
+    } else {
+      try {
+        tab.title = (new URL(url)).hostname.replace(/^www\./, "") || url;
+      } catch (_) {
+        tab.title = url;
+      }
+    }
+
+    if (activeId === tabId) {
+      updateUrlBar(tab);
+      updateNav(tab);
+    }
+
+    if (url === 'about:newtab') {
+      DOMElements.contentEl.querySelectorAll(`[data-tabid="${tabId}"]`).forEach(e => e.remove());
+      const ntPage = buildNTPage(tabId);
+      DOMElements.contentEl.appendChild(ntPage);
+      renderTabs();
+    } else {
+      let iframe = DOMElements.contentEl.querySelector(`iframe[data-tabid="${tabId}"]`);
+      
+      DOMElements.contentEl.querySelectorAll(`div.nt-page[data-tabid="${tabId}"]`).forEach(e => e.remove());
+      DOMElements.contentEl.querySelectorAll(`div.error-page[data-tabid="${tabId}"]`).forEach(e => e.remove());
+
+      if (!iframe) {
+        startLoading();
+        iframe = document.createElement("iframe");
+        iframe.className = "page-frame" + (activeId === tabId ? " active" : "");
+        iframe.setAttribute("data-tabid", tabId);
+        iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-top-navigation");
+        iframe.src = url; 
+        
+        iframe.addEventListener("load", () => {
+          finishLoading();
+          
+          try {
+            const currentIframeUrl = iframe.contentWindow.location.href;
+            if (currentIframeUrl && currentIframeUrl !== 'about:blank' && tab.url !== currentIframeUrl) {
+              tab.history = tab.history.slice(0, tab.histIdx + 1);
+              tab.history.push(currentIframeUrl);
+              tab.histIdx = tab.history.length - 1;
+              tab.url = currentIframeUrl;
+              if (activeId === tabId) {
+                updateUrlBar(tab);
+                updateNav(tab);
+              }
+            }
+          } catch (e) {}
+          
+          try {
+            const t = iframe.contentDocument && iframe.contentDocument.title;
+            if (t) { tab.title = t; renderTabs(); }
+          } catch (_) {
+            try {
+              tab.title = new URL(tab.url).hostname.replace(/^www\./, "");
+              renderTabs();
+            } catch(err) {}
+          }
+        });
+
+        iframe.addEventListener("error", () => {
+          finishLoading();
+          iframe.remove();
+          const err = buildErrorPage(tabId, url);
+          if (activeId === tabId) err.classList.add("active");
+          DOMElements.contentEl.appendChild(err);
+        });
+
+        DOMElements.contentEl.appendChild(iframe);
+      } else {
+        startLoading();
+        iframe.src = url;
+      }
+
+      if (activeId === tabId) {
+        iframe.classList.add('active');
+      }
+      renderTabs();
+    }
+  }
+
+  // ─── 履歴の前後遷移 (v10完全動作版) ───
+  function historyGo(delta) {
+    const tab = tabs.find(t => t.id === activeId);
+    if (!tab) return;
+
+    const iframe = DOMElements.contentEl.querySelector(`iframe[data-tabid="${activeId}"]`);
+
+    if (iframe) {
+      try {
+        if (delta === -1) {
+          iframe.contentWindow.history.back();
+          writeToConsole("案内: ページを戻ります。");
+          
+          if (tab.histIdx > 0) {
+            tab.histIdx--;
+            const prevUrl = tab.history[tab.histIdx];
+            tab.url = prevUrl;
+            updateUrlBar(tab);
+          }
+          return; 
+        } else if (delta === 1) {
+          iframe.contentWindow.history.forward();
+          writeToConsole("案内: ページを進めます。");
+          
+          if (tab.histIdx < tab.history.length - 1) {
+            tab.histIdx++;
+            const nextUrl = tab.history[tab.histIdx];
+            tab.url = nextUrl;
+            updateUrlBar(tab);
+          }
+          return;
+        }
+      } catch (e) {
+        // クロスオリジン（CORS制限）時は例外をキャッチして次の自作履歴バッファ切り替えにフォールバック
+      }
+    }
+
+    const next = tab.histIdx + delta;
+    if (next >= 0 && next < tab.history.length) {
+      tab.histIdx = next;
+      const url = tab.history[next];
+      tab.url = url;
+      tab.favicon = getFavicon(url);
+      
+      if (url === 'about:newtab') {
+        tab.title = "新しいタブ";
+      } else {
+        try {
+          tab.title = (new URL(url)).hostname.replace(/^www\./, "") || url;
+        } catch (_) {
+          tab.title = url;
+        }
+      }
+
+      updateUrlBar(tab);
+      updateNav(tab);
+      renderTabs();
+
+      if (url === 'about:newtab') {
+        DOMElements.contentEl.querySelectorAll(`[data-tabid="${activeId}"]`).forEach(e => e.remove());
+        const ntPage = buildNTPage(activeId);
+        DOMElements.contentEl.appendChild(ntPage);
+        writeToConsole("案内: 初期画面（新しいタブ）へ戻りました。");
+      } else {
+        if (iframe) {
+          startLoading();
+          iframe.src = url; 
+        } else {
+          navigateTo(activeId, url);
+        }
+        writeToConsole(`案内: 履歴を移動しました (${url})`);
+      }
+    } else {
+      writeToConsole("通知: これ以上のアドレス移動履歴がありません。", true);
+    }
+  }
 
   // ─── イベントリスナー ────────────────────────────────────────────────────────
   DOMElements.newTabBtn.addEventListener('click', () => openTab(null));
-  DOMElements.urlBar.addEventListener('keydown', e => { if (e.key === 'Enter') navigateTo(activeId, normalise(DOMElements.urlBar.value)); });
-  DOMElements.btnBack.addEventListener('click',   () => historyGo(-1));
-  DOMElements.btnFwd.addEventListener('click',    () => historyGo(+1));
+  DOMElements.urlBar.addEventListener('keydown', e => {
+    if (e.key === 'Enter') navigateTo(activeId, normalise(DOMElements.urlBar.value));
+  });
+  
+  DOMElements.btnBack.addEventListener('click', () => historyGo(-1));
+  DOMElements.btnFwd.addEventListener('click', () => historyGo(1));
+  
   DOMElements.btnReload.addEventListener('click', () => {
     const iframe = DOMElements.contentEl.querySelector(`iframe[data-tabid="${activeId}"]`);
     if (iframe) { startLoading(); iframe.src = iframe.src; }
   });
 
-  // 設定パネルのリスナー
+  // 設定パネル関係
   DOMElements.btnSettings.addEventListener('click', () => DOMElements.settingsPanel.classList.toggle('active'));
   DOMElements.settingsPanel.querySelector('.settings-close').addEventListener('click', () => DOMElements.settingsPanel.classList.remove('active'));
   DOMElements.settingsPanel.addEventListener('change', e => {
@@ -418,12 +876,13 @@
     if (name === 'theme') settings.theme = value;
     if (name === 'tab-layout') settings.tabLayout = value;
     if (name === 'font-size') settings.fontSize = value;
+    if (name === 'search-engine') settings.searchEngine = value; // 検索エンジン設定の保存
     if (e.target.id === 'language-select') settings.language = value;
     saveSettings();
     applySettings();
   });
   
-  // コンソールパネルのリスナー
+  // コンソール関係
   DOMElements.btnConsole.addEventListener('click', () => {
     DOMElements.consolePanel.classList.toggle('active');
     if (DOMElements.consolePanel.classList.contains('active')) DOMElements.consoleInput.focus();
@@ -432,7 +891,19 @@
   DOMElements.consoleInput.addEventListener('keydown', e => { if (e.key === 'Enter') executeCommand(DOMElements.consoleInput.value); });
   DOMElements.consoleRun.addEventListener('click', () => executeCommand(DOMElements.consoleInput.value));
 
-  // ─── 初期化 ───────────────────────────────────────────────────────────────
+  // ─── キーボードショートカット ───
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 't') { e.preventDefault(); openTab(null); }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'w') { e.preventDefault(); closeTab(activeId); }
+    if ((e.altKey) && e.key === 'ArrowLeft')  { e.preventDefault(); historyGo(-1); }
+    if ((e.altKey) && e.key === 'ArrowRight') { e.preventDefault(); historyGo(1); }
+    if (e.key === 'F5') { e.preventDefault(); DOMElements.btnReload.click(); }
+    if (e.key === 'F6' || ((e.ctrlKey || e.metaKey) && e.key === 'l')) {
+      e.preventDefault(); DOMElements.urlBar.focus(); DOMElements.urlBar.select();
+    }
+  });
+
+  // ─── 初期処理 ───
   loadSettings();
   openTab('https://ja.wikipedia.org');
 
